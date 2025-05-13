@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$" />
+    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
+
+import nltk
+nltk.download('stopwords')
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
+def generate_wordcloud(text_path, max_words=200, excluded_words=None):
+    with open(text_path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    cleaned_text = clean_text(text)
+
+    if excluded_words:
+        for word in excluded_words:
+            cleaned_text = cleaned_text.replace(word, '')
+
+    wordcloud = WordCloud(
+        width=1000,
+        height=800,
+        background_color='white',
+        collocations=False,
+        max_words=max_words
+    ).generate(cleaned_text)
+    plt.figure(figsize=(12,10))
+    plt.imshow(wordcloud, interpolation="bilinear")
+    plt.axis("off")
+    plt.title("Wordcloud of KI-related Articles", fontsize=20)
+    plt.show()
+
+generate_wordcloud("zeit_corpus.txt",
+                   max_words=150,
+                   excluded_words=["zeit", "artikel", "date", "schon", "mehr", "immer" ]
+                   )
+
+#Modul Co-occurrence-Analyse
+from collections import Counter
+
+def get_collocations(text_path, target_word, window=5, top_n=50):
+    with open(text_path, "r", encoding="utf-8") as f:
+        raw_text = f.read()
+    cleaned_text = clean_text(raw_text)
+    tokens = cleaned_text.split()
+
+    collocates = []
+    for i, word in enumerate(tokens):
+        if word == target_word:
+            start = max(i - window, 0)
+            end = min(i + window + 1, len(tokens))
+            context = tokens[start:i] + tokens[i+1:end]
+            collocates.extend(context)
+
+    counter = Counter(collocates)
+    print(f"\nSchlüsselwörter"{target_word}"的共现词（前{top_n}个):")
+    for word, freq in counter.most_common(top_n):
+        print(f"{word}:{freq}")
+
+get_collocations(
+    text_path="zeit_corpus.txt",
+    target_word="china",
+    window=5,
+    top_n=20
+)
+
+
+#Thematisches Modellierungsmodul
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from nltk.corpus import stopwords
+
+def topic_modeling(text_path, n_topics=7, min_df=3, max_df=0.95):
+    with open(text_path, "r", encoding="utf-8") as f:
+        raw_text = f.read()
+    docs = raw_text.strip().split("\n\n")
+
+    vectorizer = CountVectorizer(
+        stop_words=stopwords.words('german'),
+        max_df=max_df,
+        min_df=min_df
+    )
+    X = vectorizer.fit_transform(docs)
+    lda = LatentDirichletAllocation(n_components=n_topics, random_state=42
+    lda.fit(X)
+
+    terms = vectorizer.get_feature_name_out()
+    print(f"\nLDA 模型识别出的 {n_topics} 个主题及其关键词：\n")
+    for idx, topic in enumerate(lda.components_):
+        top_terms = [terms[i] for i in topic.argsort()[:-11:-1]]
+        print(f"主题 {idx + 1}: {', '.join(top_terms)}")
+
+topic_modelling(
+    text_path="zeit_corpus.txt",
+    n_topics=7,
+    min_df=3,
+    max_df=0.95
+)
+
