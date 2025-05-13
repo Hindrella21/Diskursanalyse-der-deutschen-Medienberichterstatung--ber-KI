@@ -1,2 +1,146 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+# Zeit Online AI
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import os
+import re
+from nltk.corpus import stopwords
+
+def scrape_zeit_articles(keywords, max_pages=3, delay=2):
+    articles = []
+    base_url = "https://www.zeit.de/suche/index"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64"}
+
+    for keyword in keyword:
+        print(f"Schlüsselwöeter: {keyword}")
+        for page in range(1, max_page + 1):
+            params = {"q": keyword, "p": page}
+            response = requests.get(base_url, params=params, headers=headers)
+
+            if response.status_code != 200:
+               print(f"第{page}页请求失败，状态码: {response.status_code}")
+               break
+            soup = BeautifulSoup(response.text, "html.parser")
+            articles_raw = soup.find_all("article") + soup.find_all("div", class_="zon-teaser-standard")
+
+            if not articles_raw:
+                   print(f"第{page}页未找到文章。")
+                   break
+
+            for article in articles_raw:
+                try:
+                    title_tag = article.find("h3")
+                    summary_tag = article.find("p")
+                    link_tag = article.find("a", href=True)
+                    time_tag = article.find("time")
+
+                    title = title_tag.text.strip() if title_tag else None
+                    summary = summary_tag.text.strip() if summary_tag else None
+                    link = link_tag["href"] if link_tag else None
+                    date = time_tag["datetime"][:10] if time_tag and time_tag.has_attr("datetime") else None
+
+                    if title and link:
+                       articles.append({
+                           "keyword": keyword,
+                           "title": title,
+                           "date": date,
+                           "summary": summary,
+                           :links": link
+                       })
+                except Exception as e:
+                    print(f"解析文章出错:{e}")
+                    continue
+
+            print(f"第{page}页抓取完成，共提取{len(articles_raw)}条。")
+            time.sleep(dalay)
+
+    df = pd.DataFrame(articles).drop_duplicates(subset="link").reset_index(drop=True)
+    return df
+
+
+def scrape_article_content(url):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    try:
+        response = requests.get(url,headers=headers, timeout=10)
+        if response.status_code != 200:
+            print(f"请求失败:{url}")
+            return None, None
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        title_tag = soup.find("h1")
+        title = title_tag.text.strip() if title_tag else None
+
+        body_section = soup.find("section", {"class": "article-body"}) or\
+                       soup.find("div",{"class": "article-body"})
+        body_text = ""
+        if body_section:
+            paragraphs = body_section.find_all("p")
+            for para in paragraphs:
+                body_text += para.text.strip() + "\n"
+
+        return title, body_text
+
+    except Exception as e:
+        print(f"抓取失败：{url}, 错误: {e}"}
+        return None, None
+
+def save_articles_to_txt(csv_path, output_folder):
+    df = pd.read_csv(csv_path)
+    os.makedirs(output_folder, exist_ok=True)
+
+    for idx, row in df.iterrows():
+        url = row.get('link', '').strip()
+        if not url:
+            continue
+
+        print(f"抓取第{idx+1}篇文章：{url}")
+        title, body = scrape_article_content(url)
+        if not title and not body:
+            continue
+
+        safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')). rstrip() if title else f"article_{idx+1}"
+        filename = f"{idx+1}_{safe_title[:50]}.txt"
+        filepath = os.path.join(output_folder, filename)
+
+        date = row.get('date', '').strip()
+        content = f"{title}\n\nDate: {date}\n\n{boby}"
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        time.sleep(1)
+
+    print(f"所有文章已保存至：{output_folder}")
+
+def merge_txt_files(folder_path, output_file):
+    with open(output_file, 'w', encoding='utf-8") as outfile:
+        for filename in os.listdir(folder_path):
+            if filename.endwith(',txt'):
+                file_path = os.path.join(folder_path, filename)
+                with open(file_path, 'r', encoding='utf-8') as infile:
+                    content = infile.read()
+                    outfile.write(content)
+                    outfile.write('\n\n')
+                print(f"合并完成：{filename}")
+    print(f"所有文件已合并保存到：{output_file}")
+
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r'[^a-zäöüß\s]', '', text)
+    words = text.split()
+    german_stopwords = set(stopwords.word('german'))
+    filtered_words = [word for word in words if word not in german_stopwords and len(word) > 2]
+    cleaned_text = ' '.join(filtered_words)
+    return cleaned_text
+
+df = scrape_zeit_articles(["KI", "Künstliche Intelligenz"], max_page=30)
+df.to_csv("zeit_ai_articles.csv", index=False, encoding="utf-8-sig")
+save_articles_to_txt("zeit_ai_articles.csv", "zeit_articles_txt")
+merge_txt_files("zeit_articles_txt", "zeit_corpus.txt")
+
+
+
+
