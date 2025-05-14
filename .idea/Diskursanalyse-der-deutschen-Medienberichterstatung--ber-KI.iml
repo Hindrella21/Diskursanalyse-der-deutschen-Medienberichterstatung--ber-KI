@@ -58,7 +58,7 @@ def get_collocations(text_path, target_word, window=5, top_n=50):
             collocates.extend(context)
 
     counter = Counter(collocates)
-    print(f"\nSchlüsselwörter"{target_word}"的共现词（前{top_n}个):")
+    print(f"\n  Übereinstimmende Wörter für"{target_word}"（{top_n}):")
     for word, freq in counter.most_common(top_n):
         print(f"{word}:{freq}")
 
@@ -90,10 +90,10 @@ def topic_modeling(text_path, n_topics=7, min_df=3, max_df=0.95):
     lda.fit(X)
 
     terms = vectorizer.get_feature_name_out()
-    print(f"\nLDA 模型识别出的 {n_topics} 个主题及其关键词：\n")
+    print(f"\nLDA Die {n_topics} vom Modell ermittelten Themen und ihre Schlüsselwörter：\n")
     for idx, topic in enumerate(lda.components_):
         top_terms = [terms[i] for i in topic.argsort()[:-11:-1]]
-        print(f"主题 {idx + 1}: {', '.join(top_terms)}")
+        print(f"Themen {idx + 1}: {', '.join(top_terms)}")
 
 topic_modelling(
     text_path="zeit_corpus.txt",
