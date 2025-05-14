@@ -22,12 +22,14 @@ def scrape_zeit_articles(keywords, max_pages=3, delay=2):
 
             if response.status_code != 200:
                print(f"第{page}页请求失败，状态码: {response.status_code}")
+               print(f"Seite {page} Anfrage fehlgeschlagen，Statuscode: {response.status_code}")
                break
             soup = BeautifulSoup(response.text, "html.parser")
             articles_raw = soup.find_all("article") + soup.find_all("div", class_="zon-teaser-standard")
 
             if not articles_raw:
                    print(f"第{page}页未找到文章。")
+                   print(f"Seite {page} Artikel nicht gefunden")
                    break
 
             for article in articles_raw:
@@ -52,9 +54,11 @@ def scrape_zeit_articles(keywords, max_pages=3, delay=2):
                        })
                 except Exception as e:
                     print(f"解析文章出错:{e}")
+                    print(f"Fehler beim Parsen von Artikeln:{e}")
                     continue
 
             print(f"第{page}页抓取完成，共提取{len(articles_raw)}条。")
+            print(f"Seite{page}des Crawls ist vollständig, mit insgesamt{len(articles_raw)}extrahierten Elementen")
             time.sleep(dalay)
 
     df = pd.DataFrame(articles).drop_duplicates(subset="link").reset_index(drop=True)
@@ -67,6 +71,7 @@ def scrape_article_content(url):
         response = requests.get(url,headers=headers, timeout=10)
         if response.status_code != 200:
             print(f"请求失败:{url}")
+            print(f"Anfrage fehlgeschlagen:{url}")
             return None, None
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -85,6 +90,7 @@ def scrape_article_content(url):
 
     except Exception as e:
         print(f"抓取失败：{url}, 错误: {e}"}
+        print(f"Der Crawl ist fehlgeschlagen：{url}, Fehler: {e}"}
         return None, None
 
 def save_articles_to_txt(csv_path, output_folder):
@@ -97,6 +103,7 @@ def save_articles_to_txt(csv_path, output_folder):
             continue
 
         print(f"抓取第{idx+1}篇文章：{url}")
+        print(f"Zum {idx+1}Pfosten kriechen：{url}")
         title, body = scrape_article_content(url)
         if not title and not body:
             continue
@@ -114,6 +121,7 @@ def save_articles_to_txt(csv_path, output_folder):
         time.sleep(1)
 
     print(f"所有文章已保存至：{output_folder}")
+    print(f"Alle Artikel wurden in der Datenbank gespeichert: {output_folder}")
 
 def merge_txt_files(folder_path, output_file):
     with open(output_file, 'w', encoding='utf-8") as outfile:
@@ -126,6 +134,8 @@ def merge_txt_files(folder_path, output_file):
                     outfile.write('\n\n')
                 print(f"合并完成：{filename}")
     print(f"所有文件已合并保存到：{output_file}")
+                print(f"Die Fusion ist abgeschlossen：{filename}")
+    print(f"Alle Dateien wurden zusammengeführt und gespeichert：{output_file}")
 
 def clean_text(text):
     text = text.lower()
